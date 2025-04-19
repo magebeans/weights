@@ -108,6 +108,7 @@ A simple single-page app for tracking resistance training workouts using Supabas
 - [ ] Support per-user preferences
 - [ ] Use Supabase Edge Functions for guest cleanup or backups
 - [ ] Modularize JS into auth.js, ui.js, storage.js, etc.
+- [ ] Add timer between sets
 
 ---
 
