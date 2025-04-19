@@ -7,7 +7,15 @@
   <title>Workout Tracker</title>
 
   <!-- Load config.js for Supabase credentials -->
-  <script src="config.js"></script>
+  <script type="module">
+  import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
+
+  window.SUPABASE_URL = SUPABASE_URL;
+  window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
+
+  // Then continue initializing the rest...
+  </script>
+
   <script>
     if (!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) {
       document.body.innerHTML = '<div class="banner show">Missing config: define SUPABASE_URL and SUPABASE_ANON_KEY in config.js</div>';
