@@ -13,11 +13,25 @@ const SUPABASE_URL      = window.SUPABASE_URL;
 const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY;
 const supabaseClient   = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+if (!supabaseClient) {
+  console.error('Supabase client could not be created');
+} else {
+  console.log('Supabase client initialized:', supabaseClient);
+}
+
 const exMap = { GS:'Goblet Squat', PU:'Push-Up', DR:'Deadlift', RD:'Row', PL:'Plank' };
 let currentDate = new Date().toISOString().slice(0, 10), savesInProgress = 0;
 const saveTimers = {};
 
-document.addEventListener('DOMContentLoaded', () => { applyTheme(); bindListeners(); initSession(); });
+console.log('Starting app');
+try {
+  applyTheme();
+  bindListeners();
+  initSession();
+} catch (e) {
+  console.error('Init error:', e);
+  showBanner(`Startup error: ${e.message}`);
+}
 
 function bindListeners() {
   document.getElementById('login-form').addEventListener('submit', login);
@@ -135,3 +149,4 @@ function showBanner(msg) { banner.textContent = msg; banner.classList.add('show'
 function hideBanner() { banner.classList.remove('show'); }
 function applyTheme() { const saved = localStorage.getItem('tracker-theme'); const sys = window.matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light'; document.documentElement.setAttribute('data-theme', saved || sys); }
 function toggleTheme() { const curr = document.documentElement.getAttribute('data-theme'); const next = curr === 'dark' ? 'light' : 'dark'; localStorage.setItem('tracker-theme', next); applyTheme(); }
+
