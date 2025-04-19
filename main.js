@@ -110,9 +110,10 @@ async function renderDay(dateStr) {
 }
 
 function navigateDays(offset) {
-  const d = new Date(currentDate);
-  d.setDate(d.getDate() + offset);
-  renderDay(d.toLocaleDateString('en-CA').slice(0, 10));
+  const [y, m, d] = currentDate.split('-').map(Number);
+  const localDate = new Date(y, m - 1, d); // this one is local time
+  localDate.setDate(localDate.getDate() + offset);
+  renderDay(localDate.toLocaleDateString('en-CA').slice(0, 10));
 }
 
 function onInput(e) {
