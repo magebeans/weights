@@ -20,7 +20,9 @@ if (!supabaseClient) {
 }
 
 const exMap = { GS:'Goblet Squat', PU:'Push-Up', DR:'Deadlift', RD:'Row', PL:'Plank' };
-let currentDate = new Date().toISOString().slice(0, 10), savesInProgress = 0;
+let currentDate = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+console.log('initial currentDate:', currentDate);
+
 const saveTimers = {};
 
 console.log('Starting app');
@@ -50,16 +52,20 @@ async function initSession() {
 }
 
 async function login(e) { e.preventDefault(); showOverlay('Logging in...'); const { error } = await supabaseClient.auth.signInWithPassword({ email: emailInput.value, password: passwordInput.value }); hideOverlay(); if (error) { showBanner(error.message); return; } initSession(); }
-async function logout() { await supabaseClient.auth.signOut(); window.user=null; currentDate = new Date().toISOString().slice(0, 10); showAuthUI(); }
+async function logout() { await supabaseClient.auth.signOut(); window.user=null; currentDate = new Date().toLocaleDateString('en-CA').slice(0, 10); showAuthUI(); }
 function showAuthUI()    { authUI.classList.remove('hidden'); trackerUI.classList.add('hidden'); }
 function showTrackerUI() { authUI.classList.add('hidden'); trackerUI.classList.remove('hidden'); }
 
 function formatDateLabel(dateStr) {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' });
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const localDate = new Date(y, m - 1, d); // this one is local time
+  return localDate.toLocaleDateString(undefined, {
+    year: 'numeric', month: 'short', day: 'numeric', weekday: 'short'
+  });
 }
 
 async function renderDay(dateStr) {
+  console.log('Rendering day: ' + dateStr);
   showOverlay('Loading...'); hideBanner();
   currentDate = dateStr;
   dayLabel.textContent = formatDateLabel(dateStr);
@@ -104,7 +110,7 @@ async function renderDay(dateStr) {
 function navigateDays(offset) {
   const d = new Date(currentDate);
   d.setDate(d.getDate() + offset);
-  renderDay(d.toISOString().slice(0, 10));
+  renderDay(d.toLocaleDateString('en-CA').slice(0, 10));
 }
 
 function onInput(e) {
