@@ -4,112 +4,42 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Workout Resistance Tracker</title>
+  <!-- Supabase UMD build -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
-    /* Light & Dark Theme Base */
-    body {
-      font-family: sans-serif;
-      padding: 1rem;
-      max-width: 600px;
-      margin: auto;
-      background: var(--bg);
-      color: var(--fg);
-      transition: background 0.3s, color 0.3s;
-      position: relative; /* For loading overlay positioning */
-    }
-    :root {
-      --bg: #ffffff;
-      --fg: #000000;
-      --input-bg: #f0f0f0;
-      --input-fg: #000000;
-      --border: #ccc;
-      --button-bg: #e0e0e0;
-      --button-fg: #000000;
-      --button-hover-bg: #d0d0d0;
-      --overlay-bg: rgba(200, 200, 200, 0.5);
-    }
-    [data-theme="dark"] {
-      --bg: #121212;
-      --fg: #e0e0e0;
-      --input-bg: #1e1e1e;
-      --input-fg: #e0e0e0;
-      --border: #333;
-      --button-bg: #333;
-      --button-fg: #e0e0e0;
-      --button-hover-bg: #444;
-      --overlay-bg: rgba(30, 30, 30, 0.5);
-    }
-    input, textarea {
-      background: var(--input-bg);
-      color: var(--input-fg);
-      border: 1px solid var(--border);
-      padding: 0.25rem;
-      border-radius: 4px;
-      margin-top: 0.25rem; /* Added for consistent spacing */
-    }
-    .hidden { display: none; }
-    .set { margin-bottom: 0.75rem; border-left: 3px solid transparent; padding-left: 0.5rem; }
-    .set.dirty { border-left-color: orange; } /* Indicate unsaved changes */
-    .set.saving { border-left-color: blue; } /* Indicate saving */
-    .set.saved { border-left-color: green; } /* Indicate saved */
-
-    input[type=number] { width: 4rem; margin-right: 0.5rem; }
-    textarea { width: 100%; height: 3rem; box-sizing: border-box; } /* Added box-sizing */
-    button {
-      margin: 0.5rem 0.25rem; /* Adjusted margin */
-      background: var(--button-bg);
-      color: var(--button-fg);
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    button:hover:not(:disabled) {
-        background: var(--button-hover-bg);
-    }
-    button:disabled {
-      opacity: 0.5;
-      cursor: default;
-    }
-    #theme-toggle {
-      position: fixed;
-      top: 1rem;
-      right: 1rem;
-      padding: 0.25rem 0.5rem;
-      font-size: 1rem;
-      z-index: 10; /* Ensure it's above overlay */
-    }
-    #day-navigation { margin-bottom: 1rem; text-align: center; }
-    #day-label { margin: 0 1rem; font-weight: bold; }
-    #exercises h3 { margin-bottom: 0.5rem; }
-    #error-message { color: red; margin-top: 1rem; text-align: center; font-weight: bold; }
-    #loading-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: var(--overlay-bg);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 1.5rem;
-        z-index: 5;
-    }
+    /* Base & Theming */
+    body { font-family: sans-serif; padding: 1rem; max-width: 600px; margin: auto; background: var(--bg); color: var(--fg); transition: background .3s, color .3s; position: relative; }
+    :root { --bg: #fff; --fg: #000; --input-bg: #f0f0f0; --input-fg: #000; --border: #ccc; --button-bg: #e0e0e0; --button-fg: #000; --button-hover-bg: #d0d0d0; --overlay-bg: rgba(200,200,200,0.5); --status-color: #666; }
+    [data-theme="dark"] { --bg:#121212; --fg:#e0e0e0; --input-bg:#1e1e1e; --input-fg:#e0e0e0; --border:#333; --button-bg:#333; --button-fg:#e0e0e0; --button-hover-bg:#444; --overlay-bg:rgba(30,30,30,0.5); --status-color:#aaa; }
+    input,textarea { background:var(--input-bg); color:var(--input-fg); border:1px solid var(--border); padding:.25rem; border-radius:4px; margin-top:.25rem; }
+    input[type=number] { width:4rem; margin-right:.5rem; }
+    textarea { width:100%; height:3rem; box-sizing:border-box; }
+    button { margin:.25rem .25rem .5rem 0; background:var(--button-bg); color:var(--button-fg); border:none; padding:.5rem 1rem; border-radius:4px; cursor:pointer; transition:background .2s; }
+    button:hover:not(:disabled){ background:var(--button-hover-bg); }
+    button:disabled{ opacity:.5; cursor:not-allowed; }
+    #theme-toggle{ position:fixed; top:1rem; right:1rem; padding:.25rem .5rem; font-size:1rem; z-index:10; }
+    #day-navigation{ margin-bottom:1rem; text-align:center; }
+    #day-label{ margin:0 1rem; font-weight:bold; }
+    .set{ margin-bottom:.75rem; border-left:3px solid transparent; padding-left:.5rem; }
+    .set.dirty{ border-color:orange; }
+    .set.saving{ border-color:blue; }
+    .set.saved{ border-color:green; }
+    #loading-overlay{ position:absolute; top:0; left:0; width:100%; height:100%; background:var(--overlay-bg); display:flex; align-items:center; justify-content:center; font-size:1.2rem; z-index:5; }
+    .hidden{ display:none; }
+    #status-message{ margin-top:1rem; color:var(--status-color); min-height:1.2em; text-align:center; }
+    #error-message{ color:red; margin-top:1rem; text-align:center; font-weight:bold; }
   </style>
 </head>
 <body>
   <button id="theme-toggle" aria-label="Toggle theme"></button>
   <h1>🏋️ Workout Resistance Tracker</h1>
-
-  <div id="loading-overlay" class="hidden">Saving...</div>
+  <div id="loading-overlay" class="hidden">Loading...</div>
   <div id="error-message" class="hidden"></div>
 
   <div id="auth">
     <h2>Login</h2>
-    <div><input id="email" type="email" placeholder="Email" required /></div>
-    <div><input id="password" type="password" placeholder="Password" required/></div>
+    <input id="email" type="email" placeholder="Email" required />
+    <input id="password" type="password" placeholder="Password" required />
     <button id="login-btn">Login</button>
   </div>
 
@@ -119,389 +49,51 @@
       <span id="day-label"></span>
       <button id="next-btn">Next ➡️</button>
     </div>
-
     <div id="exercises"></div>
     <button id="logout-btn">Logout</button>
   </div>
 
   <script>
-    // --- Constants ---
-    const SUPABASE_URL = 'https://dzqlnpyewelfkybzeylm.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6cWxucHlld2VsZmt5YnpleWxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwODYwMTksImV4cCI6MjA2MDY2MjAxOX0.6B4dyEyYXVKMYELaODNhmJEMjlsR0TgZ_ya3bT_jtMk';
-    const EXERCISES = ['GS', 'PU', 'DR', 'RD', 'PL']; // Example exercises
-    const NUM_SETS = 3;
-    const DAY_INCREMENT = 2; // Workouts every other day
-    const TOTAL_WORKOUT_DAYS = 15; // e.g., 15 workouts over ~30 days
-    const MAX_DAY_INDEX = TOTAL_WORKOUT_DAYS - 1; // Max index is 14 (0 to 14)
-    const DEBOUNCE_TIME_MS = 1200;
-    const WORKOUTS_TABLE = 'workouts';
-    const THEME_KEY = 'tracker-theme';
-
-    // --- Global State ---
-    let currentDay = 0;
-    let sessionStartDate = new Date(); // Base date for calculations
-    sessionStartDate.setHours(0, 0, 0, 0);
-    let userId = null;
-    let saveTimer = null;
-    let isSaving = false; // Track saving state
-
-    // --- Initialize Supabase ---
-    // `supabase` global is provided by the UMD build
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // --- DOM Elements ---
-    let authDiv, trackerDiv, emailInput, passwordInput, loginBtn,
-        prevBtn, nextBtn, logoutBtn, dayLabel, exercisesDiv,
-        themeToggle, errorMessageDiv, loadingOverlay;
-
-    // --- Utility Functions ---
-    const showLoading = (message = 'Loading...') => {
-        if (loadingOverlay) {
-            loadingOverlay.textContent = message;
-            loadingOverlay.classList.remove('hidden');
-        }
-    };
-    const hideLoading = () => {
-        if (loadingOverlay) loadingOverlay.classList.add('hidden');
-    };
-    const showError = (message) => {
-        if (errorMessageDiv) {
-            errorMessageDiv.textContent = message;
-            errorMessageDiv.classList.remove('hidden');
-            // Optionally hide after a delay
-            // setTimeout(hideError, 5000);
-        }
-         console.error("Error:", message); // Also log to console
-    };
-    const hideError = () => {
-        if (errorMessageDiv) errorMessageDiv.classList.add('hidden');
-    };
-
-    // --- Theme Management ---
-    const updateThemeIcon = (theme) => {
-      themeToggle.textContent = theme === 'dark' ? '🌞' : '🌙';
-    };
-    const applyTheme = (theme) => {
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem(THEME_KEY, theme);
-        updateThemeIcon(theme);
-    };
-    const toggleTheme = () => {
-      const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      applyTheme(current);
-    };
-
-    // --- Date Calculation ---
-    const getDayDateISO = (dayIndex) => {
-      const d = new Date(sessionStartDate);
-      d.setDate(d.getDate() + dayIndex * DAY_INCREMENT);
-      return d.toISOString().split('T')[0];
-    };
-
-    // --- UI Update ---
-    const updateDayLabel = () => {
-      dayLabel.textContent = `Day ${currentDay + 1} (${getDayDateISO(currentDay)})`;
-      prevBtn.disabled = currentDay === 0 || isSaving;
-      nextBtn.disabled = currentDay === MAX_DAY_INDEX || isSaving;
-    };
-
-    // --- Rendering Logic ---
-    const renderUI = async () => {
-      showLoading('Loading day data...');
-      hideError(); // Clear previous errors
-      exercisesDiv.innerHTML = ''; // Clear previous exercises
-      updateDayLabel();
-
-      const date = getDayDateISO(currentDay);
-      let rows = [];
-
-      try {
-        const { data, error } = await supabaseClient.from(WORKOUTS_TABLE)
-          .select('*')
-          .eq('user_id', userId)
-          .eq('date', date);
-
-        if (error) throw error;
-        rows = data || [];
-
-      } catch (error) {
-        showError(`Failed to load workout data: ${error.message}`);
-        hideLoading();
-        return; // Stop rendering if fetch fails
-      }
-
-      // Prepare state from fetched data
-      const state = {};
-      rows.forEach(row => {
-        state[`${row.exercise_id}-${row.set_num}`] = row;
-      });
-
-      // Create exercise sections
-      EXERCISES.forEach(ex => {
-        const section = document.createElement('div');
-        section.dataset.exerciseId = ex; // Store exercise ID for easier saving
-
-        const header = document.createElement('h3');
-        header.textContent = ex;
-        section.appendChild(header);
-
-        for (let set = 1; set <= NUM_SETS; set++) {
-          const rowData = state[`${ex}-${set}`] || {};
-          const div = document.createElement('div');
-          div.className = 'set';
-          div.dataset.setNum = set; // Store set number
-
-          const label = document.createTextNode(`Set ${set}: `);
-          const repsInput = document.createElement('input');
-          repsInput.type = 'number'; repsInput.placeholder = 'Reps'; repsInput.value = rowData.reps || '';
-          repsInput.min = "0"; // Basic validation
-          const weightInput = document.createElement('input');
-          weightInput.type = 'number'; weightInput.placeholder = 'Weight'; weightInput.value = rowData.weight || '';
-          weightInput.min = "0"; // Basic validation
-          const notesArea = document.createElement('textarea');
-          notesArea.placeholder = 'Notes (optional)'; notesArea.value = rowData.notes || ''; // Use value for textarea
-
-          // Add event listeners for debounced save
-          [repsInput, weightInput, notesArea].forEach(el => {
-            el.addEventListener('input', () => { // Use input for more responsive feedback
-                div.classList.remove('saved', 'saving');
-                div.classList.add('dirty'); // Mark as needing save
-                debounceSave();
-            });
-          });
-
-          div.append(label, repsInput, weightInput, notesArea);
-          section.appendChild(div);
-        }
-        exercisesDiv.appendChild(section);
-      });
-      hideLoading();
-    };
-
-    // --- Data Saving Logic ---
-     const debounceSave = () => {
-        if (isSaving) return; // Don't queue another save if one is in progress
-        clearTimeout(saveTimer);
-        saveTimer = setTimeout(saveAllTrackedChanges, DEBOUNCE_TIME_MS);
-     };
-
-    const saveAllTrackedChanges = async () => {
-        if (isSaving) return; // Prevent concurrent saves
-
-        const date = getDayDateISO(currentDay);
-        const upsertPromises = [];
-        const changedSets = exercisesDiv.querySelectorAll('.set.dirty'); // Only save dirty sets
-
-        if (changedSets.length === 0) {
-            // console.log("No changes to save.");
-            return;
-        }
-
-        isSaving = true;
-        showLoading('Saving...');
-        hideError(); // Clear previous errors
-        updateDayLabel(); // Disable nav buttons during save
-
-        changedSets.forEach(div => {
-            div.classList.remove('dirty');
-            div.classList.add('saving'); // Indicate saving state
-
-            const exercise_id = div.closest('[data-exercise-id]').dataset.exerciseId;
-            const set_num = parseInt(div.dataset.setNum);
-            const inputs = div.querySelectorAll('input[type=number]');
-            const notes = div.querySelector('textarea').value.trim();
-            const reps = parseInt(inputs[0].value) || null;
-            const weight = parseFloat(inputs[1].value) || null; // Use parseFloat for weight potentially
-
-            // Only upsert if there's actual data or if it previously had data (to clear it)
-            // Note: Supabase upsert handles conflict resolution based on primary/unique keys
-             upsertPromises.push(
-               supabaseClient.from(WORKOUTS_TABLE).upsert({
-                 user_id: userId,
-                 date: date,
-                 exercise_id: exercise_id,
-                 set_num: set_num,
-                 reps: reps,
-                 weight: weight,
-                 notes: notes === '' ? null : notes, // Store empty notes as null
-                 updated_at: new Date().toISOString() // Let Supabase handle this if possible via default/trigger
-               }, {
-                 onConflict: 'user_id, date, exercise_id, set_num' // Ensure these match unique constraint in DB
-               })
-               .then(({ error }) => {
-                    if (error) {
-                        div.classList.remove('saving');
-                        div.classList.add('dirty'); // Mark as dirty again on error
-                        throw new Error(`Set ${set_num} (${exercise_id}): ${error.message}`); // Propagate error
-                    } else {
-                        div.classList.remove('saving');
-                        div.classList.add('saved'); // Mark as saved
-                        // Optional: remove 'saved' class after a short delay
-                        setTimeout(() => div.classList.remove('saved'), 2000);
-                    }
-               })
-             );
-        });
-
-        try {
-            await Promise.all(upsertPromises);
-            // console.log("All changes saved successfully.");
-        } catch (error) {
-            console.error("Saving Error:", error);
-            showError(`Failed to save some changes: ${error.message}`);
-            // Sets that failed will have been marked 'dirty' again
-        } finally {
-            isSaving = false;
-            hideLoading();
-            updateDayLabel(); // Re-enable nav buttons
-        }
-    };
-
-
-    // --- Authentication ---
-    const handleLogin = async () => {
-        showLoading('Logging in...');
-        hideError();
-        loginBtn.disabled = true;
-        try {
-            const { data, error } = await supabaseClient.auth.signInWithPassword({
-                email: emailInput.value,
-                password: passwordInput.value
-            });
-
-            if (error) throw error;
-
-            if (data.session) {
-                userId = data.session.user.id;
-                authDiv.classList.add('hidden');
-                trackerDiv.classList.remove('hidden');
-                await renderUI(); // Wait for initial render
-            } else {
-                // This case might not happen if Supabase always returns an error on failure
-                throw new Error("Login failed: No session data received.");
-            }
-        } catch (error) {
-            showError(`Login failed: ${error.message}`);
-        } finally {
-             hideLoading();
-             loginBtn.disabled = false;
-        }
-    };
-
-    const handleLogout = async () => {
-        showLoading('Logging out...');
-        hideError();
-        logoutBtn.disabled = true;
-        try {
-            // Ensure any pending changes are saved before logging out
-            clearTimeout(saveTimer); // Cancel any scheduled save
-            if (exercisesDiv.querySelectorAll('.set.dirty').length > 0) {
-               await saveAllTrackedChanges(); // Wait for save to complete
-            }
-             if (isSaving) { // If saveAll was triggered and still running, wait briefly
-                await new Promise(resolve => setTimeout(resolve, DEBOUNCE_TIME_MS + 500));
-             }
-
-
-            const { error } = await supabaseClient.auth.signOut();
-            if (error) throw error;
-            // No need to reload, just reset state and UI
-             userId = null;
-             currentDay = 0;
-             trackerDiv.classList.add('hidden');
-             authDiv.classList.remove('hidden');
-             exercisesDiv.innerHTML = ''; // Clear exercises
-             emailInput.value = '';
-             passwordInput.value = '';
-
-        } catch(error) {
-            showError(`Logout failed: ${error.message}`);
-        } finally {
-            hideLoading();
-            logoutBtn.disabled = false;
-        }
-    };
-
-    // --- Initialization ---
-    const initializeApp = async () => {
-        // Assign DOM elements
-        authDiv = document.getElementById('auth');
-        trackerDiv = document.getElementById('tracker');
-        emailInput = document.getElementById('email');
-        passwordInput = document.getElementById('password');
-        loginBtn = document.getElementById('login-btn');
-        prevBtn = document.getElementById('prev-btn');
-        nextBtn = document.getElementById('next-btn');
-        logoutBtn = document.getElementById('logout-btn');
-        dayLabel = document.getElementById('day-label');
-        exercisesDiv = document.getElementById('exercises');
-        themeToggle = document.getElementById('theme-toggle');
-        errorMessageDiv = document.getElementById('error-message');
-        loadingOverlay = document.getElementById('loading-overlay');
-
-        // Theme setup
-        const storedTheme = localStorage.getItem(THEME_KEY) || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        applyTheme(storedTheme);
-
-        // Bind listeners
-        themeToggle.addEventListener('click', toggleTheme);
-        loginBtn.addEventListener('click', handleLogin);
-        logoutBtn.addEventListener('click', handleLogout);
-
-        prevBtn.addEventListener('click', () => {
-          if (currentDay > 0 && !isSaving) {
-             // Optional: Confirm navigation if there are unsaved changes
-             // if (exercisesDiv.querySelectorAll('.set.dirty').length > 0 && !confirm("Unsaved changes, proceed anyway?")) return;
-             clearTimeout(saveTimer); // Cancel pending save if navigating
-             currentDay--;
-             renderUI();
-          }
-        });
-        nextBtn.addEventListener('click', () => {
-          if (currentDay < MAX_DAY_INDEX && !isSaving) {
-             // Optional: Confirm navigation if there are unsaved changes
-             // if (exercisesDiv.querySelectorAll('.set.dirty').length > 0 && !confirm("Unsaved changes, proceed anyway?")) return;
-             clearTimeout(saveTimer); // Cancel pending save if navigating
-             currentDay++;
-             renderUI();
-          }
-        });
-
-        // Add listener for Enter key on password field for login
-        passwordInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                handleLogin();
-            }
-        });
-
-
-        // Check initial session state
-        showLoading('Checking session...');
-        try {
-            const { data: { session }, error } = await supabaseClient.auth.getSession();
-            if (error) throw error;
-
-            if (session) {
-                userId = session.user.id;
-                authDiv.classList.add('hidden');
-                trackerDiv.classList.remove('hidden');
-                await renderUI(); // Load data for the initial day
-            } else {
-                authDiv.classList.remove('hidden');
-                trackerDiv.classList.add('hidden');
-                 hideLoading(); // No session, stop loading indicator
-            }
-        } catch (error) {
-            showError(`Failed to check session: ${error.message}`);
-            authDiv.classList.remove('hidden'); // Show login on error
-             hideLoading();
-        }
-        // hideLoading() is called within renderUI or the else/catch blocks
-    };
-
-    // --- Start the app ---
-    window.addEventListener('DOMContentLoaded', initializeApp);
-
+    // Constants
+    const SUPABASE_URL='https://dzqlnpyewelfkybzeylm.supabase.co', SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...', EXERCISES=['GS','PU','DR','RD','PL'], NUM_SETS=3, DAY_INCREMENT=2, TOTAL_WORKOUT_DAYS=15, MAX_DAY_INDEX=TOTAL_WORKOUT_DAYS-1, DEBOUNCE_MS=1200, WORKOUTS_TABLE='workouts', THEME_KEY='tracker-theme';
+    let currentDay=0, sessionStartDate=new Date(), userId=null, saveTimer=null, isSaving=false;
+    sessionStartDate.setHours(0,0,0,0);
+    const supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+    // DOM refs
+    let authDiv,trackerDiv,emailInput,passwordInput,loginBtn,prevBtn,nextBtn,logoutBtn,dayLabel,exercisesDiv,themeToggle,errorDiv,loadingOverlay;
+    // Helpers
+    const showLoading=msg=>{loadingOverlay.textContent=msg;loadingOverlay.classList.remove('hidden');}, hideLoading=()=>loadingOverlay.classList.add('hidden');
+    const showError=msg=>{errorDiv.textContent=msg;errorDiv.classList.remove('hidden');console.error(msg);}, hideError=()=>errorDiv.classList.add('hidden');
+    const applyTheme=theme=>{document.documentElement.setAttribute('data-theme',theme);localStorage.setItem(THEME_KEY,theme);themeToggle.textContent=theme==='dark'?'🌞':'🌙';};
+    const toggleTheme=()=>applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark');
+    const getDayISO=idx=>{const d=new Date(sessionStartDate);d.setDate(d.getDate()+idx*DAY_INCREMENT);return d.toISOString().split('T')[0];};
+    const updateDayNav=()=>{dayLabel.textContent=`Day ${currentDay+1} (${getDayISO(currentDay)})`;prevBtn.disabled=currentDay===0||isSaving;nextBtn.disabled=currentDay===MAX_DAY_INDEX||isSaving;};
+    // Render
+    async function renderUI(){showLoading('Loading...');hideError();exercisesDiv.innerHTML='';updateDayNav();const date=getDayISO(currentDay);
+      let data;
+      try{({data,error}=await supabaseClient.from(WORKOUTS_TABLE).select('*').eq('user_id',userId).eq('date',date));if(error)throw error;}catch(e){showError('Load error: '+e.message);hideLoading();return;}const state={};data.forEach(r=>state[`${r.exercise_id}-${r.set_num}`]=r);
+      EXERCISES.forEach(ex=>{const sec=document.createElement('div');sec.dataset.exerciseId=ex;const h3=document.createElement('h3');h3.textContent=ex;sec.appendChild(h3);
+        for(let s=1;s<=NUM_SETS;s++){const row=state[`${ex}-${s}`]||{};const div=document.createElement('div');div.className='set';div.dataset.setNum=s;const lbl=document.createTextNode(`Set ${s}: `);
+          const ri=document.createElement('input');ri.type='number';ri.min=0;ri.placeholder='Reps';ri.value=row.reps||'';
+          const wi=document.createElement('input');wi.type='number';wi.min=0;wi.placeholder='Weight';wi.value=row.weight||'';
+          const na=document.createElement('textarea');na.placeholder='Notes(optional)';na.value=row.notes||'';
+          [ri,wi,na].forEach(el=>el.addEventListener('input',()=>{div.classList.remove('saved','saving');div.classList.add('dirty');debounceSave();}));
+          div.append(lbl,ri,wi,na);sec.appendChild(div);}exercisesDiv.appendChild(sec);});hideLoading();}
+    // Save
+    function debounceSave(){if(isSaving)return;clearTimeout(saveTimer);saveTimer=setTimeout(saveChanges,DEBOUNCE_MS);}    
+    async function saveChanges(){if(isSaving)return;const date=getDayISO(currentDay);const dirty=document.querySelectorAll('.set.dirty');if(!dirty.length)return;isSaving=true;showLoading('Saving...');hideError();updateDayNav();
+      const promises=[];dirty.forEach(div=>{div.classList.remove('dirty');div.classList.add('saving');const ex=div.dataset.exerciseId;const s=parseInt(div.dataset.setNum);const [ri,wi]=div.querySelectorAll('input');const notes=div.querySelector('textarea').value.trim();const reps=parseInt(ri.value)||null;const weight=parseFloat(wi.value)||null;
+        promises.push(supabaseClient.from(WORKOUTS_TABLE).upsert({user_id:userId,date,exercise_id:ex,set_num:s,reps,weight,notes:notes||null},{onConflict:'user_id,date,exercise_id,set_num'}).then(({error})=>{if(error){div.classList.remove('saving');div.classList.add('dirty');throw error;}else{div.classList.remove('saving');div.classList.add('saved');setTimeout(()=>div.classList.remove('saved'),2000);}}));});
+      try{await Promise.all(promises);}catch(e){showError('Save error: '+e.message);}finally{isSaving=false;hideLoading();updateDayNav();}}
+    // Auth
+    async function handleLogin(){showLoading('Logging in...');hideError();loginBtn.disabled=true;try{const { data,error }=await supabaseClient.auth.signInWithPassword({email:emailInput.value,password:passwordInput.value});if(error)throw error;userId=data.session.user.id;authDiv.classList.add('hidden');trackerDiv.classList.remove('hidden');await renderUI();}catch(e){showError('Login failed: '+e.message);}finally{hideLoading();loginBtn.disabled=false;}}
+    async function handleLogout(){showLoading('Logging out...');hideError();logoutBtn.disabled=true;clearTimeout(saveTimer);if(document.querySelectorAll('.set.dirty').length)await saveChanges();try{const { error }=await supabaseClient.auth.signOut();if(error)throw error;userId=null;currentDay=0;trackerDiv.classList.add('hidden');authDiv.classList.remove('hidden');exercisesDiv.innerHTML='';emailInput.value='';passwordInput.value='';}catch(e){showError('Logout failed: '+e.message);}finally{hideLoading();logoutBtn.disabled=false;}}
+    // Init
+    async function initializeApp(){authDiv=document.getElementById('auth');trackerDiv=document.getElementById('tracker');emailInput=document.getElementById('email');passwordInput=document.getElementById('password');loginBtn=document.getElementById('login-btn');prevBtn=document.getElementById('prev-btn');nextBtn=document.getElementById('next-btn');logoutBtn=document.getElementById('logout-btn');dayLabel=document.getElementById('day-label');exercisesDiv=document.getElementById('exercises');themeToggle=document.getElementById('theme-toggle');errorDiv=document.getElementById('error-message');loadingOverlay=document.getElementById('loading-overlay');
+      const saved=localStorage.getItem(THEME_KEY)||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');applyTheme(saved);themeToggle.addEventListener('click',toggleTheme);loginBtn.addEventListener('click',handleLogin);logoutBtn.addEventListener('click',handleLogout);passwordInput.addEventListener('keypress',e=>{if(e.key==='Enter')handleLogin();});prevBtn.addEventListener('click',()=>{if(currentDay>0&&!isSaving){clearTimeout(saveTimer);currentDay--;renderUI();}});nextBtn.addEventListener('click',()=>{if(currentDay<MAX_DAY_INDEX&&!isSaving){clearTimeout(saveTimer);currentDay++;renderUI();}});
+      showLoading('Checking session...');hideError();
+      try{const { data:{session},error }=await supabaseClient.auth.getSession();if(error)throw error; if(session){userId=session.user.id;authDiv.classList.add('hidden');trackerDiv.classList.remove('hidden');await renderUI();}else{authDiv.classList.remove('hidden');trackerDiv.classList.add('hidden');hideLoading();}}catch(e){showError('Session error: '+e.message);authDiv.classList.remove('hidden');hideLoading();}}
+    window.addEventListener('DOMContentLoaded',initializeApp);
   </script>
 </body>
 </html>
