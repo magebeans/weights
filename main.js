@@ -8,6 +8,7 @@ const prevDay       = document.getElementById('prev-day');
 const nextDay       = document.getElementById('next-day');
 const dayLabel      = document.getElementById('day-label');
 const workoutForm   = document.getElementById('workout-form');
+let savesInProgress = 0;
 
 const SUPABASE_URL      = window.SUPABASE_URL;
 const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY;
