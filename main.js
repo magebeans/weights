@@ -79,7 +79,7 @@ async function renderDay(dateStr) {
     for (let s = 1; s <= 3; s++) {
       const rec = data?.find(r => r.exercise_id === ex && r.set_num === s) || {};
       const row = document.createElement('div'); row.classList.add('set-row');
-      ['reps','notes'].forEach(field => {
+     ['reps','notes'].forEach(field => {
         const el = field === 'notes' ? document.createElement('textarea') : document.createElement('input');
         if (field !== 'notes') { el.type = 'number'; el.placeholder = field.charAt(0).toUpperCase() + field.slice(1); }
         else { el.placeholder = 'Notes'; }
@@ -87,6 +87,7 @@ async function renderDay(dateStr) {
         if (el.value) el.classList.add('filled');
         el.dataset.exercise = ex; el.dataset.set = s; el.dataset.field = field;
         el.addEventListener('input', onInput);
+        el.setAttribute('rows', '1');
         row.appendChild(el);
       });
       if (!['PU', 'PL'].includes(ex)) {
@@ -97,6 +98,7 @@ async function renderDay(dateStr) {
         if (wtEl.value) wtEl.classList.add('filled');
         wtEl.dataset.exercise = ex; wtEl.dataset.set = s; wtEl.dataset.field = 'weight';
         wtEl.addEventListener('input', onInput);
+        wtEl.setAttribute('rows', '1');
         row.insertBefore(wtEl, row.children[1]);
       }
       block.appendChild(row);
