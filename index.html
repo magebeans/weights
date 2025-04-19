@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>30-Day Resistance Tracker</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 1em; margin: 0; }
+    h1 { font-size: 1.5em; margin-bottom: 1em; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: center; font-size: 0.9em; }
+    input { width: 100%; box-sizing: border-box; font-size: 0.9em; padding: 2px; }
+    thead { background: #f2f2f2; position: sticky; top: 0; }
+  </style>
+</head>
+<body>
+  <h1>30-Day Resistance Tracker</h1>
+  <table>
+    <thead>
+      <tr><th>Date</th><th>Ex</th><th>Set</th><th>Reps</th><th>Wt</th><th>Notes</th></tr>
+    </thead>
+    <tbody id="tracker"></tbody>
+  </table>
+
+  <script>
+    (function(){
+      const exList = ["GS", "PU", "DR", "RDL", "PL"];
+      const today = new Date();
+      const pad = n => n < 10 ? '0'+n : n;
+      const dates = [];
+      for(let i=0;i<28;i+=2){
+        const d = new Date(today);
+        d.setDate(today.getDate() + i);
+        dates.push(d);
+      }
+
+      const tbody = document.getElementById("tracker");
+      dates.forEach(d => {
+        const dateStr = pad(d.getMonth()+1) + '-' + pad(d.getDate());
+        exList.forEach(ex => {
+          for(let s = 1; s <= 3; s++) {
+            const key = dateStr + "_" + ex + "_" + s;
+            const tr = document.createElement("tr");
+
+            ["Date", "Ex", "Set"].forEach((label, i) => {
+              const td = document.createElement("td");
+              td.textContent = i === 0 ? dateStr : i === 1 ? ex : s;
+              tr.appendChild(td);
+            });
+
+            ["Reps", "Wt", "Notes"].forEach(label => {
+              const td = document.createElement("td");
+              const input = document.createElement("input");
+              input.value = localStorage.getItem(key + "_" + label) || "";
+              input.placeholder = label;
+              input.addEventListener("input", () => {
+                localStorage.setItem(key + "_" + label, input.value);
+              });
+              td.appendChild(input);
+              tr.appendChild(td);
+            });
+
+            tbody.appendChild(tr);
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
+
