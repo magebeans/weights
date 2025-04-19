@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>30-Day Resistance Tracker</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js" defer></script>
   <style>
     /* Light & Dark Theme Base */
     body {
@@ -54,8 +54,9 @@
       border-radius: 4px;
       cursor: pointer;
     }
-    button:hover {
-      opacity: 0.9;
+    button:disabled {
+      opacity: 0.5;
+      cursor: default;
     }
     #theme-toggle {
       position: fixed;
@@ -67,30 +68,31 @@
   </style>
 </head>
 <body>
-  <button id="theme-toggle" aria-label="Toggle theme">🌓</button>
+  <button id="theme-toggle" aria-label="Toggle theme"></button>
   <h1>🏋️ 30-Day Resistance Tracker</h1>
 
   <div id="auth">
-    <input id="email" placeholder="Email" />
+    <input id="email" type="email" placeholder="Email" />
     <input id="password" type="password" placeholder="Password" />
-    <button onclick="login()">Login</button>
+    <button id="login-btn">Login</button>
   </div>
 
   <div id="tracker" class="hidden">
     <div>
-      <button onclick="prevDay()">⬅️ Prev</button>
+      <button id="prev-btn">⬅️ Prev</button>
       <span id="day-label"></span>
-      <button onclick="nextDay()">Next ➡️</button>
+      <button id="next-btn">Next ➡️</button>
     </div>
 
     <div id="exercises"></div>
-    <button onclick="logout()">Logout</button>
+    <button id="logout-btn">Logout</button>
   </div>
 
-  <script>
+  <script defer>
+    // Initialize Supabase client
     const SUPABASE_URL = 'https://dzqlnpyewelfkybzeylm.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6cWxucHlld2VsZmt5YnpleWxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwODYwMTksImV4cCI6MjA2MDY2MjAxOX0.6B4dyEyYXVKMYELaODNhmJEMjlsR0TgZ_ya3bT_jtMk';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const exercises = ['GS', 'PU', 'DR', 'RD', 'PL'];
     let currentDay = 0;
@@ -103,18 +105,30 @@
       // DOM elements
       const authDiv = document.getElementById('auth');
       const trackerDiv = document.getElementById('tracker');
+      const emailInput = document.getElementById('email');
+      const passwordInput = document.getElementById('password');
+      const loginBtn = document.getElementById('login-btn');
+      const prevBtn = document.getElementById('prev-btn');
+      const nextBtn = document.getElementById('next-btn');
+      const logoutBtn = document.getElementById('logout-btn');
       const dayLabel = document.getElementById('day-label');
       const exercisesDiv = document.getElementById('exercises');
       const themeToggle = document.getElementById('theme-toggle');
 
       // Theme init
+      const updateThemeIcon = () => {
+        const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+        themeToggle.textContent = dark ? '🌞' : '🌙';
+      };
       const storedTheme = localStorage.getItem('theme');
       if (storedTheme) document.documentElement.setAttribute('data-theme', storedTheme);
-      themeToggle.onclick = () => {
+      updateThemeIcon();
+      themeToggle.addEventListener('click', () => {
         const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
         document.documentElement.setAttribute('data-theme', current);
         localStorage.setItem('theme', current);
-      };
+        updateThemeIcon();
+      });
 
       const getDayDate = (dayIndex) => {
         const d = new Date(sessionStart);
@@ -124,6 +138,8 @@
 
       const updateDayLabel = () => {
         dayLabel.textContent = `Day ${currentDay + 1} – ${getDayDate(currentDay)}`;
+        prevBtn.disabled = currentDay === 0;
+        nextBtn.disabled = currentDay === exercises.length * 3 - exercises.length; // 13
       };
 
       const debounceSave = () => {
@@ -136,48 +152,59 @@
         updateDayLabel();
 
         const date = getDayDate(currentDay);
-        const { data: rows } = await supabase.from('workouts')
+        const { data: rows } = await supabaseClient.from('workouts')
           .select('*')
           .eq('user_id', userId)
           .eq('date', date);
 
         const state = {};
-        for (const row of rows || []) {
+        (rows || []).forEach(row => {
           state[`${row.exercise_id}-${row.set_num}`] = row;
-        }
+        });
 
-        for (const ex of exercises) {
+        exercises.forEach(ex => {
           const section = document.createElement('div');
-          section.innerHTML = `<h3>${ex}</h3>`;
+          const header = document.createElement('h3'); header.textContent = ex;
+          section.appendChild(header);
           for (let set = 1; set <= 3; set++) {
             const row = state[`${ex}-${set}`] || {};
             const div = document.createElement('div');
             div.className = 'set';
-            div.innerHTML = `
-              Set ${set}:
-              <input type="number" placeholder="Reps" value="${row.reps || ''}" onchange="handleInput()" />
-              <input type="number" placeholder="Weight" value="${row.weight || ''}" onchange="handleInput()" />
-              <textarea placeholder="Notes" onchange="handleInput()">${row.notes || ''}</textarea>
-            `;
+
+            const label = document.createTextNode(`Set ${set}: `);
+            const repsInput = document.createElement('input');
+            repsInput.type = 'number'; repsInput.placeholder = 'Reps'; repsInput.value = row.reps || '';
+            const weightInput = document.createElement('input');
+            weightInput.type = 'number'; weightInput.placeholder = 'Weight'; weightInput.value = row.weight || '';
+            const notesArea = document.createElement('textarea');
+            notesArea.placeholder = 'Notes'; notesArea.textContent = row.notes || '';
+
+            [repsInput, weightInput, notesArea].forEach(el => {
+              el.style.background = 'var(--input-bg)';
+              el.style.color = 'var(--input-fg)';
+              el.addEventListener('change', debounceSave);
+            });
+
+            div.append(label, repsInput, weightInput, notesArea);
             section.appendChild(div);
           }
           exercisesDiv.appendChild(section);
-        }
+        });
       };
 
       const saveAll = async () => {
         const date = getDayDate(currentDay);
-        for (let section of exercisesDiv.children) {
-          const ex = section.querySelector('h3').textContent;
-          const sets = section.querySelectorAll('.set');
-          sets.forEach(async (div, i) => {
-            const set_num = i + 1;
-            const inputs = div.querySelectorAll('input');
-            const notes = div.querySelector('textarea').value;
-            const reps = parseInt(inputs[0].value) || null;
-            const weight = parseInt(inputs[1].value) || null;
-            if (reps || weight || notes) {
-              await supabase.from('workouts').upsert({
+        const promises = [];
+        exercisesDiv.querySelectorAll('.set').forEach((div, i) => {
+          const ex = div.parentNode.querySelector('h3').textContent;
+          const set_num = (i % 3) + 1;
+          const inputs = div.querySelectorAll('input');
+          const notes = div.querySelector('textarea').value;
+          const reps = parseInt(inputs[0].value) || null;
+          const weight = parseInt(inputs[1].value) || null;
+          if (reps || weight || notes) {
+            promises.push(
+              supabaseClient.from('workouts').upsert({
                 user_id: userId,
                 date,
                 exercise_id: ex,
@@ -186,32 +213,16 @@
                 weight,
                 notes,
                 updated_at: new Date().toISOString()
-              }, { onConflict: ['user_id', 'date', 'exercise_id', 'set_num'] });
-            }
-          });
-        }
+              }, { onConflict: ['user_id', 'date', 'exercise_id', 'set_num'] })
+            );
+          }
+        });
+        await Promise.all(promises);
       };
 
-      window.handleInput = () => debounceSave();
-
-      window.prevDay = () => {
-        if (currentDay > 0) {
-          currentDay--;
-          renderUI();
-        }
-      };
-
-      window.nextDay = () => {
-        if (currentDay < 13) {
-          currentDay++;
-          renderUI();
-        }
-      };
-
-      window.login = async () => {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      // Bind listeners
+      loginBtn.addEventListener('click', async () => {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email: emailInput.value, password: passwordInput.value });
         if (data.session) {
           userId = data.session.user.id;
           authDiv.classList.add('hidden');
@@ -220,15 +231,13 @@
         } else {
           alert('Login failed');
         }
-      };
-
-      window.logout = async () => {
-        await supabase.auth.signOut();
-        location.reload();
-      };
+      });
+      prevBtn.addEventListener('click', () => { if (currentDay > 0) { currentDay--; renderUI(); }});
+      nextBtn.addEventListener('click', () => { if (currentDay < 13) { currentDay++; renderUI(); }});
+      logoutBtn.addEventListener('click', async () => { await supabaseClient.auth.signOut(); location.reload(); });
 
       (async () => {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) {
           userId = session.user.id;
           authDiv.classList.add('hidden');
