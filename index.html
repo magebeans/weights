@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>30-Day Resistance Tracker</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js" defer></script>
+  <!-- Load UMD build of Supabase client for global `supabase` -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
     /* Light & Dark Theme Base */
     body {
@@ -88,8 +89,9 @@
     <button id="logout-btn">Logout</button>
   </div>
 
-  <script defer>
+  <script>
     // Initialize Supabase client
+    // `supabase` global is provided by the UMD build
     const SUPABASE_URL = 'https://dzqlnpyewelfkybzeylm.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6cWxucHlld2VsZmt5YnpleWxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwODYwMTksImV4cCI6MjA2MDY2MjAxOX0.6B4dyEyYXVKMYELaODNhmJEMjlsR0TgZ_ya3bT_jtMk';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -238,14 +240,3 @@
 
       (async () => {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        if (session) {
-          userId = session.user.id;
-          authDiv.classList.add('hidden');
-          trackerDiv.classList.remove('hidden');
-          renderUI();
-        }
-      })();
-    });
-  </script>
-</body>
-</html>
