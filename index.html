@@ -17,10 +17,15 @@
   </script>
 
   <script>
+    document.addEventListener('DOMContentLoaded', () => {
     if (!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) {
-      document.body.innerHTML = '<div class="banner show">Missing config: define SUPABASE_URL and SUPABASE_ANON_KEY in config.js</div>';
+      const banner = document.createElement('div');
+      banner.className = 'banner show';
+      banner.textContent = 'Missing config: define SUPABASE_URL and SUPABASE_ANON_KEY in config.js';
+      document.body.appendChild(banner);
       throw new Error('Missing Supabase config');
     }
+   });
   </script>
 
   <!-- Supabase client (UMD) -->
