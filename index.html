@@ -1,71 +1,242 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>30-Day Resistance Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 1em; margin: 0; }
-    h1 { font-size: 1.5em; margin-bottom: 1em; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #ccc; padding: 6px; text-align: center; font-size: 0.9em; }
-    input { width: 100%; box-sizing: border-box; font-size: 0.9em; padding: 2px; }
-    thead { background: #f2f2f2; position: sticky; top: 0; }
+    /* Light & Dark Theme Base */
+    body {
+      font-family: sans-serif;
+      padding: 1rem;
+      max-width: 600px;
+      margin: auto;
+      background: var(--bg);
+      color: var(--fg);
+      transition: background 0.3s, color 0.3s;
+    }
+    :root {
+      --bg: #ffffff;
+      --fg: #000000;
+      --input-bg: #f0f0f0;
+      --input-fg: #000000;
+      --border: #ccc;
+      --button-bg: #e0e0e0;
+      --button-fg: #000000;
+    }
+    [data-theme="dark"] {
+      --bg: #121212;
+      --fg: #e0e0e0;
+      --input-bg: #1e1e1e;
+      --input-fg: #e0e0e0;
+      --border: #333;
+      --button-bg: #333;
+      --button-fg: #e0e0e0;
+    }
+    input, textarea {
+      background: var(--input-bg);
+      color: var(--input-fg);
+      border: 1px solid var(--border);
+      padding: 0.25rem;
+      border-radius: 4px;
+    }
+    .hidden { display: none; }
+    .set { margin-bottom: 0.5rem; }
+    input { width: 4rem; margin-right: 0.5rem; }
+    textarea { width: 100%; height: 3rem; margin-top: 0.25rem; }
+    button {
+      margin: 0.5rem;
+      background: var(--button-bg);
+      color: var(--button-fg);
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    #theme-toggle {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      padding: 0.25rem 0.5rem;
+      font-size: 1rem;
+    }
   </style>
 </head>
 <body>
-  <h1>30-Day Resistance Tracker</h1>
-  <table>
-    <thead>
-      <tr><th>Date</th><th>Ex</th><th>Set</th><th>Reps</th><th>Wt</th><th>Notes</th></tr>
-    </thead>
-    <tbody id="tracker"></tbody>
-  </table>
+  <button id="theme-toggle" aria-label="Toggle theme">🌓</button>
+  <h1>🏋️ 30-Day Resistance Tracker</h1>
+
+  <div id="auth">
+    <input id="email" placeholder="Email" />
+    <input id="password" type="password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+  </div>
+
+  <div id="tracker" class="hidden">
+    <div>
+      <button onclick="prevDay()">⬅️ Prev</button>
+      <span id="day-label"></span>
+      <button onclick="nextDay()">Next ➡️</button>
+    </div>
+
+    <div id="exercises"></div>
+    <button onclick="logout()">Logout</button>
+  </div>
 
   <script>
-    (function(){
-      const exList = ["GS", "PU", "DR", "RDL", "PL"];
-      const today = new Date();
-      const pad = n => n < 10 ? '0'+n : n;
-      const dates = [];
-      for(let i=0;i<28;i+=2){
-        const d = new Date(today);
-        d.setDate(today.getDate() + i);
-        dates.push(d);
-      }
+    const SUPABASE_URL = 'https://dzqlnpyewelfkybzeylm.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6cWxucHlld2VsZmt5YnpleWxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwODYwMTksImV4cCI6MjA2MDY2MjAxOX0.6B4dyEyYXVKMYELaODNhmJEMjlsR0TgZ_ya3bT_jtMk';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-      const tbody = document.getElementById("tracker");
-      dates.forEach(d => {
-        const dateStr = pad(d.getMonth()+1) + '-' + pad(d.getDate());
-        exList.forEach(ex => {
-          for(let s = 1; s <= 3; s++) {
-            const key = dateStr + "_" + ex + "_" + s;
-            const tr = document.createElement("tr");
+    const exercises = ['GS', 'PU', 'DR', 'RD', 'PL'];
+    let currentDay = 0;
+    let sessionStart = new Date();
+    sessionStart.setHours(0, 0, 0, 0);
+    let userId = null;
+    let saveTimer = null;
 
-            ["Date", "Ex", "Set"].forEach((label, i) => {
-              const td = document.createElement("td");
-              td.textContent = i === 0 ? dateStr : i === 1 ? ex : s;
-              tr.appendChild(td);
-            });
+    window.addEventListener('DOMContentLoaded', () => {
+      // DOM elements
+      const authDiv = document.getElementById('auth');
+      const trackerDiv = document.getElementById('tracker');
+      const dayLabel = document.getElementById('day-label');
+      const exercisesDiv = document.getElementById('exercises');
+      const themeToggle = document.getElementById('theme-toggle');
 
-            ["Reps", "Wt", "Notes"].forEach(label => {
-              const td = document.createElement("td");
-              const input = document.createElement("input");
-              input.value = localStorage.getItem(key + "_" + label) || "";
-              input.placeholder = label;
-              input.addEventListener("input", () => {
-                localStorage.setItem(key + "_" + label, input.value);
-              });
-              td.appendChild(input);
-              tr.appendChild(td);
-            });
+      // Theme init
+      const storedTheme = localStorage.getItem('theme');
+      if (storedTheme) document.documentElement.setAttribute('data-theme', storedTheme);
+      themeToggle.onclick = () => {
+        const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', current);
+        localStorage.setItem('theme', current);
+      };
 
-            tbody.appendChild(tr);
+      const getDayDate = (dayIndex) => {
+        const d = new Date(sessionStart);
+        d.setDate(d.getDate() + dayIndex * 2);
+        return d.toISOString().split('T')[0];
+      };
+
+      const updateDayLabel = () => {
+        dayLabel.textContent = `Day ${currentDay + 1} – ${getDayDate(currentDay)}`;
+      };
+
+      const debounceSave = () => {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(saveAll, 1000);
+      };
+
+      const renderUI = async () => {
+        exercisesDiv.innerHTML = '';
+        updateDayLabel();
+
+        const date = getDayDate(currentDay);
+        const { data: rows } = await supabase.from('workouts')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('date', date);
+
+        const state = {};
+        for (const row of rows || []) {
+          state[`${row.exercise_id}-${row.set_num}`] = row;
+        }
+
+        for (const ex of exercises) {
+          const section = document.createElement('div');
+          section.innerHTML = `<h3>${ex}</h3>`;
+          for (let set = 1; set <= 3; set++) {
+            const row = state[`${ex}-${set}`] || {};
+            const div = document.createElement('div');
+            div.className = 'set';
+            div.innerHTML = `
+              Set ${set}:
+              <input type="number" placeholder="Reps" value="${row.reps || ''}" onchange="handleInput()" />
+              <input type="number" placeholder="Weight" value="${row.weight || ''}" onchange="handleInput()" />
+              <textarea placeholder="Notes" onchange="handleInput()">${row.notes || ''}</textarea>
+            `;
+            section.appendChild(div);
           }
-        });
-      });
-    })();
+          exercisesDiv.appendChild(section);
+        }
+      };
+
+      const saveAll = async () => {
+        const date = getDayDate(currentDay);
+        for (let section of exercisesDiv.children) {
+          const ex = section.querySelector('h3').textContent;
+          const sets = section.querySelectorAll('.set');
+          sets.forEach(async (div, i) => {
+            const set_num = i + 1;
+            const inputs = div.querySelectorAll('input');
+            const notes = div.querySelector('textarea').value;
+            const reps = parseInt(inputs[0].value) || null;
+            const weight = parseInt(inputs[1].value) || null;
+            if (reps || weight || notes) {
+              await supabase.from('workouts').upsert({
+                user_id: userId,
+                date,
+                exercise_id: ex,
+                set_num,
+                reps,
+                weight,
+                notes,
+                updated_at: new Date().toISOString()
+              }, { onConflict: ['user_id', 'date', 'exercise_id', 'set_num'] });
+            }
+          });
+        }
+      };
+
+      window.handleInput = () => debounceSave();
+
+      window.prevDay = () => {
+        if (currentDay > 0) {
+          currentDay--;
+          renderUI();
+        }
+      };
+
+      window.nextDay = () => {
+        if (currentDay < 13) {
+          currentDay++;
+          renderUI();
+        }
+      };
+
+      window.login = async () => {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (data.session) {
+          userId = data.session.user.id;
+          authDiv.classList.add('hidden');
+          trackerDiv.classList.remove('hidden');
+          renderUI();
+        } else {
+          alert('Login failed');
+        }
+      };
+
+      window.logout = async () => {
+        await supabase.auth.signOut();
+        location.reload();
+      };
+
+      (async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          userId = session.user.id;
+          authDiv.classList.add('hidden');
+          trackerDiv.classList.remove('hidden');
+          renderUI();
+        }
+      })();
+    });
   </script>
 </body>
 </html>
-
