@@ -6,6 +6,7 @@ const emailInput    = document.getElementById('email');
 const passwordInput = document.getElementById('password');
 const prevDay       = document.getElementById('prev-day');
 const nextDay       = document.getElementById('next-day');
+const goToTodayBtn  = document.getElementById('go-to-today'); // Added
 const dayLabel      = document.getElementById('day-label');
 const workoutForm   = document.getElementById('workout-form');
 let savesInProgress = 0;
@@ -41,6 +42,7 @@ function bindListeners() {
   document.getElementById('logout').addEventListener('click', logout);
   prevDay.addEventListener('click', () => navigateDays(-1));
   nextDay.addEventListener('click', () => navigateDays(1));
+  goToTodayBtn.addEventListener('click', goToToday); // Added
   document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 }
 
@@ -110,12 +112,60 @@ async function renderDay(dateStr) {
   hideOverlay();
 }
 
-function navigateDays(offset) {
-  const [y, m, d] = currentDate.split('-').map(Number);
-  const localDate = new Date(y, m - 1, d); // this one is local time
-  localDate.setDate(localDate.getDate() + offset);
-  renderDay(localDate.toLocaleDateString('en-CA').slice(0, 10));
+// --- Navigation ---
+
+async function navigateDays(offset) {
+  console.log(`Navigating days with offset: ${offset}`);
+  showOverlay('Finding next day...');
+  disableNav(true);
+  hideBanner();
+
+  const isNext = offset > 0;
+  const operator = isNext ? 'gt' : 'lt'; // Greater than or Less than
+  const orderAscending = isNext; // Ascending for next, Descending for previous
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('workouts')
+      .select('date')
+      .eq('user_id', window.user.id)
+      .filter('date', operator, currentDate) // Find dates > or < current
+      .order('date', { ascending: orderAscending }) // Find the closest date
+      .limit(1); // We only need the very next/previous one
+
+    if (error) {
+      throw error;
+    }
+
+    if (data && data.length > 0) {
+      console.log(`Found day: ${data[0].date}`);
+      // renderDay will hide overlay and enable nav
+      renderDay(data[0].date);
+    } else {
+      console.log('No other day found with entries.');
+      showBanner(`No ${isNext ? 'future' : 'previous'} days with entries found.`);
+      hideOverlay(); // Hide overlay as renderDay wasn't called
+      disableNav(false); // Re-enable nav as renderDay wasn't called
+    }
+  } catch (error) {
+    console.error('Error finding next/prev day:', error);
+    showBanner(`Error finding day: ${error.message}`);
+    hideOverlay();
+    disableNav(false);
+  }
 }
+
+function goToToday() {
+  const todayDate = new Date().toLocaleDateString('en-CA');
+  if (currentDate !== todayDate) {
+    console.log('Going to today:', todayDate);
+    renderDay(todayDate);
+  } else {
+    console.log('Already on today.');
+  }
+}
+
+// --- Input Handling & Saving ---
 
 function onInput(e) {
   if (savesInProgress > 0) return;
@@ -151,6 +201,8 @@ function markSaving(ex,s) { document.querySelectorAll(`[data-exercise="${ex}"][d
 function markSaved(ex,s) { document.querySelectorAll(`[data-exercise="${ex}"][data-set="${s}"]`).forEach(el=>{ el.classList.remove('dirty','saving'); el.classList.add('saved'); }); }
 function markError(ex,s) { document.querySelectorAll(`[data-exercise="${ex}"][data-set="${s}"]`).forEach(el=>{ el.classList.remove('saving','saved'); el.classList.add('dirty'); }); }
 
+// --- UI State & Helpers ---
+
 function updateSavingState() {
   const busy = savesInProgress > 0;
   disableNav(busy);
@@ -160,11 +212,14 @@ function updateSavingState() {
       hideOverlay(); // Ensure overlay is hidden once all saves complete
   }
 }
-function disableNav(val) { prevDay.disabled = val; nextDay.disabled = val; }
+function disableNav(val) {
+    prevDay.disabled = val;
+    nextDay.disabled = val;
+    goToTodayBtn.disabled = val; // Added
+}
 function showOverlay(msg) { overlay.textContent = msg; overlay.classList.add('show'); }
 function hideOverlay() { overlay.classList.remove('show'); }
 function showBanner(msg) { banner.textContent = msg; banner.classList.add('show'); }
 function hideBanner() { banner.classList.remove('show'); }
 function applyTheme() { const saved = localStorage.getItem('tracker-theme'); const sys = window.matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light'; document.documentElement.setAttribute('data-theme', saved || sys); }
 function toggleTheme() { const curr = document.documentElement.getAttribute('data-theme'); const next = curr === 'dark' ? 'light' : 'dark'; localStorage.setItem('tracker-theme', next); applyTheme(); }
-
