@@ -151,7 +151,15 @@ function markSaving(ex,s) { document.querySelectorAll(`[data-exercise="${ex}"][d
 function markSaved(ex,s) { document.querySelectorAll(`[data-exercise="${ex}"][data-set="${s}"]`).forEach(el=>{ el.classList.remove('dirty','saving'); el.classList.add('saved'); }); }
 function markError(ex,s) { document.querySelectorAll(`[data-exercise="${ex}"][data-set="${s}"]`).forEach(el=>{ el.classList.remove('saving','saved'); el.classList.add('dirty'); }); }
 
-function updateSavingState() { const busy = savesInProgress > 0; disableNav(busy); document.querySelectorAll('#workout-form input,#workout-form textarea').forEach(el => el.disabled = busy); if (busy) showOverlay('Saving...'); else hideOverlay(); }
+function updateSavingState() {
+  const busy = savesInProgress > 0;
+  disableNav(busy);
+  document.querySelectorAll('#workout-form input,#workout-form textarea').forEach(el => el.disabled = busy);
+  // Removed the showOverlay/hideOverlay call from here to prevent overlay during auto-save
+  if (!busy) {
+      hideOverlay(); // Ensure overlay is hidden once all saves complete
+  }
+}
 function disableNav(val) { prevDay.disabled = val; nextDay.disabled = val; }
 function showOverlay(msg) { overlay.textContent = msg; overlay.classList.add('show'); }
 function hideOverlay() { overlay.classList.remove('show'); }
