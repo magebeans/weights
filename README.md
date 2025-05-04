@@ -103,7 +103,7 @@ A simple single-page app for tracking resistance training workouts using Supabas
 
 ## 🚧 Possible Next Steps
 
-- [ ] Add a date picker or jump-to-date field
+- [x] Add a date picker or jump-to-date field
 - [ ] Export workout history to CSV
 - [ ] Support per-user preferences
 - [ ] Use Supabase Edge Functions for guest cleanup or backups
