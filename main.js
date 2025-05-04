@@ -168,7 +168,7 @@ function goToToday() {
 // --- Input Handling & Saving ---
 
 function onInput(e) {
-  if (savesInProgress > 0) return;
+  // Removed: if (savesInProgress > 0) return;
   const el = e.target;
   if (el.value) el.classList.add('filled'); else el.classList.remove('filled');
   markDirty(el);
@@ -206,10 +206,10 @@ function markError(ex,s) { document.querySelectorAll(`[data-exercise="${ex}"][da
 function updateSavingState() {
   const busy = savesInProgress > 0;
   disableNav(busy);
-  document.querySelectorAll('#workout-form input,#workout-form textarea').forEach(el => el.disabled = busy);
+  // Removed: document.querySelectorAll('#workout-form input,#workout-form textarea').forEach(el => el.disabled = busy);
   // Removed the showOverlay/hideOverlay call from here to prevent overlay during auto-save
   if (!busy) {
-      hideOverlay(); // Ensure overlay is hidden once all saves complete
+      hideOverlay(); // Ensure overlay is hidden once all saves complete (relevant if saves were triggered by navigation etc.)
   }
 }
 function disableNav(val) {
